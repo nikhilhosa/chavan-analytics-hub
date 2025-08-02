@@ -1,7 +1,11 @@
-import React from 'react';
+import React, { useState } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
+import { Input } from '@/components/ui/input';
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from '@/components/ui/dialog';
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
+import { Label } from '@/components/ui/label';
 import { 
   TrendingUp, 
   TrendingDown, 
@@ -12,11 +16,78 @@ import {
   ArrowUpRight,
   ArrowDownRight,
   Eye,
-  Calendar
+  Calendar,
+  Plus,
+  Grid3X3
 } from 'lucide-react';
 import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, LineChart, Line, PieChart, Pie, Cell } from 'recharts';
+import { useDashboards } from '@/hooks/useDashboards';
+import DashboardCard from '@/components/DashboardCard';
+import { useNavigate } from 'react-router-dom';
 
 const Overview: React.FC = () => {
+  const navigate = useNavigate();
+  const { dashboards, loading, createDashboard, deleteDashboard } = useDashboards();
+  const [isCreateDialogOpen, setIsCreateDialogOpen] = useState(false);
+  const [newDashboard, setNewDashboard] = useState({
+    name: '',
+    description: '',
+    type: 'custom' as const,
+    is_public: false,
+  });
+
+  const handleCreateDashboard = async () => {
+    if (!newDashboard.name.trim()) return;
+    
+    const dashboard = await createDashboard(newDashboard);
+    if (dashboard) {
+      setIsCreateDialogOpen(false);
+      setNewDashboard({ name: '', description: '', type: 'custom', is_public: false });
+      navigate(`/dashboard/builder?id=${dashboard.id}`);
+    }
+  };
+
+  const handleViewDashboard = (dashboard: any) => {
+    switch (dashboard.type) {
+      case 'sales':
+        navigate('/dashboard/sales');
+        break;
+      case 'service':
+        navigate('/dashboard/service');
+        break;
+      case 'admin':
+        navigate('/dashboard/admin');
+        break;
+      default:
+        navigate(`/dashboard/builder?id=${dashboard.id}`);
+    }
+  };
+
+  const handleEditDashboard = (dashboard: any) => {
+    navigate(`/dashboard/builder?id=${dashboard.id}`);
+  };
+
+  const handleDeleteDashboard = async (dashboard: any) => {
+    if (confirm('Are you sure you want to delete this dashboard?')) {
+      await deleteDashboard(dashboard.id);
+    }
+  };
+
+  const handleDuplicateDashboard = async (dashboard: any) => {
+    await createDashboard({
+      name: `${dashboard.name} (Copy)`,
+      description: dashboard.description,
+      type: dashboard.type,
+      is_public: false,
+      layout: dashboard.layout,
+    });
+  };
+
+  const handleShareDashboard = (dashboard: any) => {
+    // Implement share functionality
+    console.log('Share dashboard:', dashboard);
+  };
+
   const salesData = [
     { month: 'Jan', sales: 45000, target: 50000 },
     { month: 'Feb', sales: 52000, target: 50000 },
@@ -76,6 +147,61 @@ const Overview: React.FC = () => {
           <p className="text-muted-foreground">Welcome back! Here's what's happening with your business.</p>
         </div>
         <div className="flex gap-2">
+          <Dialog open={isCreateDialogOpen} onOpenChange={setIsCreateDialogOpen}>
+            <DialogTrigger asChild>
+              <Button>
+                <Plus className="w-4 h-4 mr-2" />
+                Create Dashboard
+              </Button>
+            </DialogTrigger>
+            <DialogContent>
+              <DialogHeader>
+                <DialogTitle>Create New Dashboard</DialogTitle>
+              </DialogHeader>
+              <div className="space-y-4">
+                <div>
+                  <Label htmlFor="name">Dashboard Name</Label>
+                  <Input
+                    id="name"
+                    value={newDashboard.name}
+                    onChange={(e) => setNewDashboard({ ...newDashboard, name: e.target.value })}
+                    placeholder="Enter dashboard name"
+                  />
+                </div>
+                <div>
+                  <Label htmlFor="description">Description</Label>
+                  <Input
+                    id="description"
+                    value={newDashboard.description}
+                    onChange={(e) => setNewDashboard({ ...newDashboard, description: e.target.value })}
+                    placeholder="Enter description (optional)"
+                  />
+                </div>
+                <div>
+                  <Label htmlFor="type">Type</Label>
+                  <Select value={newDashboard.type} onValueChange={(value: any) => setNewDashboard({ ...newDashboard, type: value })}>
+                    <SelectTrigger>
+                      <SelectValue placeholder="Select type" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="sales">Sales</SelectItem>
+                      <SelectItem value="service">Service</SelectItem>
+                      <SelectItem value="admin">Admin</SelectItem>
+                      <SelectItem value="custom">Custom</SelectItem>
+                    </SelectContent>
+                  </Select>
+                </div>
+                <div className="flex justify-end gap-2">
+                  <Button variant="outline" onClick={() => setIsCreateDialogOpen(false)}>
+                    Cancel
+                  </Button>
+                  <Button onClick={handleCreateDashboard}>
+                    Create Dashboard
+                  </Button>
+                </div>
+              </div>
+            </DialogContent>
+          </Dialog>
           <Button variant="outline">
             <Calendar className="w-4 h-4 mr-2" />
             Last 30 days
@@ -85,6 +211,64 @@ const Overview: React.FC = () => {
             View Report
           </Button>
         </div>
+      </div>
+
+      {/* My Dashboards Section */}
+      <div className="space-y-4">
+        <div className="flex items-center justify-between">
+          <h2 className="text-xl font-semibold">My Dashboards</h2>
+          {dashboards.length > 0 && (
+            <Button variant="outline" size="sm" onClick={() => navigate('/dashboard/builder')}>
+              <Grid3X3 className="w-4 h-4 mr-2" />
+              View All
+            </Button>
+          )}
+        </div>
+        
+        {loading ? (
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+            {[...Array(6)].map((_, i) => (
+              <Card key={i} className="animate-pulse">
+                <CardContent className="p-6">
+                  <div className="h-4 bg-muted rounded w-3/4 mb-2"></div>
+                  <div className="h-3 bg-muted rounded w-1/2"></div>
+                </CardContent>
+              </Card>
+            ))}
+          </div>
+        ) : dashboards.length > 0 ? (
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+            {dashboards.slice(0, 6).map((dashboard) => (
+              <DashboardCard
+                key={dashboard.id}
+                dashboard={dashboard}
+                onView={handleViewDashboard}
+                onEdit={handleEditDashboard}
+                onDelete={handleDeleteDashboard}
+                onDuplicate={handleDuplicateDashboard}
+                onShare={handleShareDashboard}
+              />
+            ))}
+          </div>
+        ) : (
+          <Card className="p-8 text-center">
+            <div className="flex flex-col items-center gap-4">
+              <div className="p-4 rounded-full bg-muted">
+                <Grid3X3 className="w-8 h-8 text-muted-foreground" />
+              </div>
+              <div>
+                <h3 className="text-lg font-medium mb-2">No dashboards yet</h3>
+                <p className="text-muted-foreground mb-4">
+                  Create your first dashboard to start visualizing your data
+                </p>
+                <Button onClick={() => setIsCreateDialogOpen(true)}>
+                  <Plus className="w-4 h-4 mr-2" />
+                  Create Your First Dashboard
+                </Button>
+              </div>
+            </div>
+          </Card>
+        )}
       </div>
 
       {/* KPI Cards */}
