@@ -1,22 +1,22 @@
-import React from 'react';
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
-import { Badge } from '@/components/ui/badge';
+import React, { useState, useEffect } from 'react';
 import { Button } from '@/components/ui/button';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
+import { Download, Filter } from 'lucide-react';
+import { useDashboards } from '@/hooks/useDashboards';
+import { useAuth } from '@/contexts/AuthContext';
 import { 
-  TrendingUp, 
-  DollarSign, 
-  Target, 
-  Users, 
-  Calendar,
-  Download,
-  Filter,
-  ArrowUpRight,
-  ArrowDownRight
-} from 'lucide-react';
-import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, LineChart, Line, AreaChart, Area } from 'recharts';
+  KPICard, 
+  AreaChartComponent, 
+  MetricsList,
+  kpiIcons 
+} from '@/components/ChartComponents';
 
 const SalesDashboard: React.FC = () => {
+  const { user } = useAuth();
+  const { dashboards, loading } = useDashboards();
+  const [timeRange, setTimeRange] = useState('this-month');
+  
+  // Sample data - in a real app, this would come from your data sources
   const monthlyData = [
     { month: 'Jan', revenue: 45000, target: 50000, deals: 23 },
     { month: 'Feb', revenue: 52000, target: 50000, deals: 31 },
@@ -26,20 +26,11 @@ const SalesDashboard: React.FC = () => {
     { month: 'Jun', revenue: 67000, target: 60000, deals: 42 },
   ];
 
-  const salesRepData = [
-    { name: 'John Smith', revenue: 125000, deals: 23, conversion: 68 },
-    { name: 'Sarah Johnson', revenue: 110000, deals: 28, conversion: 72 },
-    { name: 'Mike Davis', revenue: 98000, deals: 19, conversion: 65 },
-    { name: 'Lisa Wang', revenue: 87000, deals: 21, conversion: 58 },
-    { name: 'Tom Brown', revenue: 76000, deals: 16, conversion: 61 },
-  ];
-
-  const salesPipelineData = [
-    { stage: 'Prospecting', count: 45, value: 450000 },
-    { stage: 'Qualification', count: 32, value: 320000 },
-    { stage: 'Proposal', count: 18, value: 540000 },
-    { stage: 'Negotiation', count: 12, value: 480000 },
-    { stage: 'Closed Won', count: 8, value: 320000 },
+  const salesMetrics = [
+    { name: 'Average Deal Size', value: '$12.5K', change: 8.2, changeType: 'increase' as const },
+    { name: 'Sales Cycle Length', value: '18 days', change: -5.1, changeType: 'decrease' as const },
+    { name: 'Pipeline Velocity', value: '$2.3M', change: 12.4, changeType: 'increase' as const },
+    { name: 'Win Rate', value: '24.8%', change: -2.3, changeType: 'decrease' as const },
   ];
 
   return (
@@ -50,7 +41,7 @@ const SalesDashboard: React.FC = () => {
           <p className="text-muted-foreground">Track sales performance and manage your pipeline</p>
         </div>
         <div className="flex gap-2">
-          <Select defaultValue="this-month">
+          <Select value={timeRange} onValueChange={setTimeRange}>
             <SelectTrigger className="w-40">
               <SelectValue />
             </SelectTrigger>
@@ -74,181 +65,55 @@ const SalesDashboard: React.FC = () => {
 
       {/* KPI Cards */}
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
-        <Card>
-          <CardContent className="p-6">
-            <div className="flex items-center justify-between">
-              <div>
-                <p className="text-sm font-medium text-muted-foreground">Total Revenue</p>
-                <p className="text-2xl font-bold">$328K</p>
-                <div className="flex items-center mt-2">
-                  <ArrowUpRight className="w-4 h-4 text-green-500" />
-                  <span className="text-sm ml-1 text-green-500">+15.3%</span>
-                  <span className="text-xs text-muted-foreground ml-1">vs last month</span>
-                </div>
-              </div>
-              <div className="p-3 rounded-full bg-green-100 dark:bg-green-900">
-                <DollarSign className="w-6 h-6 text-green-600" />
-              </div>
-            </div>
-          </CardContent>
-        </Card>
-
-        <Card>
-          <CardContent className="p-6">
-            <div className="flex items-center justify-between">
-              <div>
-                <p className="text-sm font-medium text-muted-foreground">Deals Closed</p>
-                <p className="text-2xl font-bold">127</p>
-                <div className="flex items-center mt-2">
-                  <ArrowUpRight className="w-4 h-4 text-green-500" />
-                  <span className="text-sm ml-1 text-green-500">+8.1%</span>
-                  <span className="text-xs text-muted-foreground ml-1">vs last month</span>
-                </div>
-              </div>
-              <div className="p-3 rounded-full bg-blue-100 dark:bg-blue-900">
-                <Target className="w-6 h-6 text-blue-600" />
-              </div>
-            </div>
-          </CardContent>
-        </Card>
-
-        <Card>
-          <CardContent className="p-6">
-            <div className="flex items-center justify-between">
-              <div>
-                <p className="text-sm font-medium text-muted-foreground">Conversion Rate</p>
-                <p className="text-2xl font-bold">24.8%</p>
-                <div className="flex items-center mt-2">
-                  <ArrowDownRight className="w-4 h-4 text-red-500" />
-                  <span className="text-sm ml-1 text-red-500">-2.3%</span>
-                  <span className="text-xs text-muted-foreground ml-1">vs last month</span>
-                </div>
-              </div>
-              <div className="p-3 rounded-full bg-orange-100 dark:bg-orange-900">
-                <TrendingUp className="w-6 h-6 text-orange-600" />
-              </div>
-            </div>
-          </CardContent>
-        </Card>
-
-        <Card>
-          <CardContent className="p-6">
-            <div className="flex items-center justify-between">
-              <div>
-                <p className="text-sm font-medium text-muted-foreground">New Leads</p>
-                <p className="text-2xl font-bold">1,249</p>
-                <div className="flex items-center mt-2">
-                  <ArrowUpRight className="w-4 h-4 text-green-500" />
-                  <span className="text-sm ml-1 text-green-500">+22.5%</span>
-                  <span className="text-xs text-muted-foreground ml-1">vs last month</span>
-                </div>
-              </div>
-              <div className="p-3 rounded-full bg-purple-100 dark:bg-purple-900">
-                <Users className="w-6 h-6 text-purple-600" />
-              </div>
-            </div>
-          </CardContent>
-        </Card>
+        <KPICard
+          title="Total Revenue"
+          value="$328K"
+          change={15.3}
+          changeType="increase"
+          icon={kpiIcons.revenue}
+        />
+        <KPICard
+          title="Deals Closed"
+          value="127"
+          change={8.1}
+          changeType="increase"
+          icon={kpiIcons.target}
+        />
+        <KPICard
+          title="Conversion Rate"
+          value="24.8%"
+          change={-2.3}
+          changeType="decrease"
+          icon={kpiIcons.activity}
+        />
+        <KPICard
+          title="New Leads"
+          value="1,249"
+          change={22.5}
+          changeType="increase"
+          icon={kpiIcons.users}
+        />
       </div>
 
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-        {/* Revenue Trend */}
-        <Card>
-          <CardHeader>
-            <CardTitle className="flex items-center justify-between">
-              Revenue vs Target
-              <Badge variant="outline">6 months</Badge>
-            </CardTitle>
-          </CardHeader>
-          <CardContent>
-            <div className="h-80">
-              <ResponsiveContainer width="100%" height="100%">
-                <AreaChart data={monthlyData}>
-                  <CartesianGrid strokeDasharray="3 3" />
-                  <XAxis dataKey="month" />
-                  <YAxis />
-                  <Tooltip formatter={(value) => [`$${value.toLocaleString()}`, '']} />
-                  <Area 
-                    type="monotone" 
-                    dataKey="revenue" 
-                    stroke="hsl(var(--primary))" 
-                    fill="hsl(var(--primary))" 
-                    fillOpacity={0.3}
-                    name="Revenue"
-                  />
-                  <Area 
-                    type="monotone" 
-                    dataKey="target" 
-                    stroke="hsl(var(--muted-foreground))" 
-                    fill="hsl(var(--muted-foreground))" 
-                    fillOpacity={0.1}
-                    name="Target"
-                  />
-                </AreaChart>
-              </ResponsiveContainer>
-            </div>
-          </CardContent>
-        </Card>
-
-        {/* Sales Pipeline */}
-        <Card>
-          <CardHeader>
-            <CardTitle>Sales Pipeline</CardTitle>
-          </CardHeader>
-          <CardContent>
-            <div className="space-y-4">
-              {salesPipelineData.map((stage, index) => (
-                <div key={index} className="space-y-2">
-                  <div className="flex justify-between items-center">
-                    <span className="text-sm font-medium">{stage.stage}</span>
-                    <div className="text-right">
-                      <span className="text-sm font-bold">${stage.value.toLocaleString()}</span>
-                      <span className="text-xs text-muted-foreground ml-2">({stage.count} deals)</span>
-                    </div>
-                  </div>
-                  <div className="w-full bg-muted rounded-full h-2">
-                    <div 
-                      className="bg-primary h-2 rounded-full transition-all duration-300"
-                      style={{ width: `${(stage.value / 540000) * 100}%` }}
-                    />
-                  </div>
-                </div>
-              ))}
-            </div>
-          </CardContent>
-        </Card>
+        <AreaChartComponent
+          data={monthlyData}
+          title="Revenue vs Target"
+          xKey="month"
+          yKey="revenue"
+          color="hsl(var(--primary))"
+        />
+        <MetricsList
+          metrics={salesMetrics}
+          title="Key Sales Metrics"
+        />
       </div>
 
-      {/* Sales Team Performance */}
-      <Card>
-        <CardHeader>
-          <CardTitle>Sales Team Performance</CardTitle>
-        </CardHeader>
-        <CardContent>
-          <div className="space-y-4">
-            {salesRepData.map((rep, index) => (
-              <div key={index} className="flex items-center justify-between p-4 rounded-lg bg-muted/20">
-                <div className="flex items-center gap-4">
-                  <div className="h-10 w-10 rounded-full bg-gradient-to-r from-blue-500 to-purple-600 flex items-center justify-center text-white font-medium">
-                    {rep.name.split(' ').map(n => n[0]).join('')}
-                  </div>
-                  <div>
-                    <p className="font-medium">{rep.name}</p>
-                    <p className="text-sm text-muted-foreground">
-                      ${rep.revenue.toLocaleString()} revenue • {rep.deals} deals
-                    </p>
-                  </div>
-                </div>
-                <div className="text-right">
-                  <Badge variant={rep.conversion >= 65 ? 'default' : 'secondary'}>
-                    {rep.conversion}% conversion
-                  </Badge>
-                </div>
-              </div>
-            ))}
-          </div>
-        </CardContent>
-      </Card>
+      {loading && (
+        <div className="text-center py-8">
+          <p className="text-muted-foreground">Loading dashboard data...</p>
+        </div>
+      )}
     </div>
   );
 };

@@ -9,8 +9,8 @@ import { Sheet, SheetContent, SheetHeader, SheetTitle, SheetTrigger } from '@/co
 import { ScrollArea } from '@/components/ui/scroll-area';
 import { Separator } from '@/components/ui/separator';
 import { toast } from '@/hooks/use-toast';
-// import { useAuth } from '@/contexts/AuthContext';
-import { supabase } from '@/integrations/supabase/client';
+import { useAuth } from '@/contexts/AuthContext';
+import { useDashboards } from '@/hooks/useDashboards';
 import { 
   BarChart3, 
   LineChart, 
@@ -97,7 +97,8 @@ const VISUALIZATION_TYPES = [
 ];
 
 const DashboardBuilder: React.FC = () => {
-  // const { user } = useAuth();
+  const { user } = useAuth();
+  const { createDashboard } = useDashboards();
   const canvasRef = useRef<HTMLDivElement>(null);
   const [dashboardName, setDashboardName] = useState('');
   const [selectedPage, setSelectedPage] = useState(0);
@@ -123,17 +124,19 @@ const DashboardBuilder: React.FC = () => {
     }
 
     try {
-      // Simulate saving for now
-      console.log('Saving dashboard:', {
+      const dashboard = await createDashboard({
         name: dashboardName,
-        pages,
-        settings: { viewMode, zoom }
+        type: 'custom',
+        layout: { pages, settings: { viewMode, zoom } },
+        is_public: false
       });
 
-      toast({
-        title: "Success",
-        description: "Dashboard saved successfully",
-      });
+      if (dashboard) {
+        toast({
+          title: "Success",
+          description: "Dashboard saved successfully",
+        });
+      }
     } catch (error) {
       console.error('Error saving dashboard:', error);
       toast({
