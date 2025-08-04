@@ -14,7 +14,7 @@ import { useAuth } from '@/contexts/AuthContext';
 import { useDashboards, useDataSources } from '@/hooks/useDashboards';
 import VisualizationRenderer from '@/components/VisualizationRenderer';
 import FileUploadZone from '@/components/FileUploadZone';
-import { FilterPanel, FilterComponent, FilterConfig, FILTER_TYPES } from '@/components/FilterComponents';
+import { FilterPanel, FilterConfig, FILTER_TYPES } from '@/components/FilterComponents';
 import { ChartCustomization, ChartStyle, getDefaultChartStyle } from '@/components/ChartCustomization';
 import { ShareDialog, ShareSettings, getDefaultShareSettings } from '@/components/ShareDashboard';
 import { 
@@ -46,7 +46,11 @@ import {
   Circle,
   Trash2,
   Copy,
-  Move3D
+  Move3D,
+  Filter,
+  Palette,
+  Share2,
+  Layers
 } from 'lucide-react';
 
 interface Visualization {
@@ -59,6 +63,7 @@ interface Visualization {
   height: number;
   data_source_id?: string;
   config?: any;
+  style?: ChartStyle;
 }
 
 interface DashboardPage {
@@ -80,7 +85,7 @@ const VISUALIZATION_TYPES = [
   { id: 'text-box', name: 'Text Box', icon: Type, category: 'Visual' }
 ];
 
-const DashboardBuilder: React.FC = () => {
+const EnhancedDashboardBuilder: React.FC = () => {
   const { user } = useAuth();
   const { createDashboard } = useDashboards();
   const { dataSources, fetchDataSources, createDataSource } = useDataSources();
@@ -99,6 +104,12 @@ const DashboardBuilder: React.FC = () => {
   const [isPreviewMode, setIsPreviewMode] = useState(false);
   const [viewMode, setViewMode] = useState<'desktop' | 'mobile'>('desktop');
   const [zoom, setZoom] = useState(100);
+  const [sidebarTab, setSidebarTab] = useState<'visualizations' | 'filters' | 'style' | 'data'>('visualizations');
+  
+  // Advanced features state
+  const [activeFilters, setActiveFilters] = useState<FilterConfig[]>([]);
+  const [filterValues, setFilterValues] = useState<Record<string, any>>({});
+  const [shareSettings, setShareSettings] = useState<ShareSettings>(getDefaultShareSettings());
   
   // Drag state
   const [isDragging, setIsDragging] = useState(false);
@@ -139,9 +150,11 @@ const DashboardBuilder: React.FC = () => {
             ...page,
             visualizations: page.visualizations
           })), 
-          settings: { viewMode, zoom } 
+          settings: { viewMode, zoom },
+          filters: activeFilters,
+          shareSettings
         },
-        is_public: false
+        is_public: shareSettings.isPublic
       });
 
       if (dashboard) {
@@ -181,7 +194,8 @@ const DashboardBuilder: React.FC = () => {
       y,
       width: 300,
       height: 200,
-      config: getDefaultConfig(type)
+      config: getDefaultConfig(type),
+      style: getDefaultChartStyle()
     };
 
     const updatedPages = [...pages];
@@ -279,6 +293,16 @@ const DashboardBuilder: React.FC = () => {
     }
   };
 
+  // Update visualization style
+  const updateVisualizationStyle = (vizId: string, styleUpdates: Partial<ChartStyle>) => {
+    const updatedPages = [...pages];
+    const viz = updatedPages[selectedPage].visualizations.find(v => v.id === vizId);
+    if (viz) {
+      viz.style = { ...viz.style, ...styleUpdates };
+      setPages(updatedPages);
+    }
+  };
+
   // Delete visualization
   const deleteVisualization = (vizId: string) => {
     const updatedPages = [...pages];
@@ -298,7 +322,8 @@ const DashboardBuilder: React.FC = () => {
         id: Date.now().toString(),
         x: viz.x + 20,
         y: viz.y + 20,
-        title: `${viz.title} Copy`
+        title: `${viz.title} Copy`,
+        style: viz.style ? { ...viz.style } : getDefaultChartStyle()
       };
       const updatedPages = [...pages];
       updatedPages[selectedPage].visualizations.push(newViz);
@@ -306,8 +331,35 @@ const DashboardBuilder: React.FC = () => {
     }
   };
 
+  // Filter management
+  const addFilter = (type: string) => {
+    const newFilter: FilterConfig = {
+      id: `filter-${Date.now()}`,
+      type: type as any,
+      label: `New ${type} Filter`,
+      field: '',
+      options: type === 'dropdown' ? ['Option 1', 'Option 2', 'Option 3'] : undefined
+    };
+    setActiveFilters([...activeFilters, newFilter]);
+  };
+
+  const updateFilter = (filterId: string, value: any) => {
+    setFilterValues({ ...filterValues, [filterId]: value });
+  };
+
+  const removeFilter = (filterId: string) => {
+    setActiveFilters(activeFilters.filter(f => f.id !== filterId));
+    const newFilterValues = { ...filterValues };
+    delete newFilterValues[filterId];
+    setFilterValues(newFilterValues);
+  };
+
+  const clearAllFilters = () => {
+    setFilterValues({});
+  };
+
   // Handle file upload
-  const handleFileUpload = async (files: File[]) => {
+  const handleFileUpload = async (files: any[]) => {
     for (const file of files) {
       try {
         const dataSource = await createDataSource({
@@ -379,6 +431,12 @@ const DashboardBuilder: React.FC = () => {
             <Eye className="w-4 h-4 mr-2" />
             Preview
           </Button>
+          <ShareDialog
+            dashboardId="current-dashboard"
+            dashboardName={dashboardName || "Untitled Dashboard"}
+            shareSettings={shareSettings}
+            onSettingsChange={setShareSettings}
+          />
         </div>
 
         <div className="flex items-center gap-2">
@@ -403,19 +461,36 @@ const DashboardBuilder: React.FC = () => {
       </div>
 
       <div className="flex-1 flex">
-        {/* Left Sidebar - Visualizations Panel */}
+        {/* Left Sidebar - Enhanced with tabs */}
         {!isPreviewMode && (
           <div className="w-80 border-r bg-card flex flex-col">
-            <Tabs defaultValue="visualizations" className="flex-1">
-              <TabsList className="grid w-full grid-cols-3">
-                <TabsTrigger value="visualizations">Visuals</TabsTrigger>
-                <TabsTrigger value="data">Data</TabsTrigger>
-                <TabsTrigger value="format">Format</TabsTrigger>
-              </TabsList>
+            <div className="flex border-b">
+              {[
+                { id: 'visualizations', label: 'Charts', icon: BarChart3 },
+                { id: 'filters', label: 'Filters', icon: Filter },
+                { id: 'style', label: 'Style', icon: Palette },
+                { id: 'data', label: 'Data', icon: Upload }
+              ].map((tab) => (
+                <button
+                  key={tab.id}
+                  onClick={() => setSidebarTab(tab.id as any)}
+                  className={`flex-1 p-3 text-xs flex flex-col items-center gap-1 border-b-2 transition-colors ${
+                    sidebarTab === tab.id 
+                      ? 'border-primary text-primary bg-primary/10' 
+                      : 'border-transparent text-muted-foreground hover:text-foreground'
+                  }`}
+                >
+                  <tab.icon className="w-4 h-4" />
+                  {tab.label}
+                </button>
+              ))}
+            </div>
 
-              <TabsContent value="visualizations" className="flex-1 p-0">
-                <ScrollArea className="h-full">
-                  <div className="p-4 space-y-4">
+            <ScrollArea className="flex-1">
+              <div className="p-4">
+                {sidebarTab === 'visualizations' && (
+                  <div className="space-y-4">
+                    <h3 className="font-semibold text-lg">Visualizations</h3>
                     {Object.entries(
                       VISUALIZATION_TYPES.reduce((acc, viz) => {
                         if (!acc[viz.category]) acc[viz.category] = [];
@@ -424,7 +499,7 @@ const DashboardBuilder: React.FC = () => {
                       }, {} as Record<string, typeof VISUALIZATION_TYPES>)
                     ).map(([category, visuals]) => (
                       <div key={category}>
-                        <h3 className="font-semibold text-sm mb-2">{category}</h3>
+                        <h4 className="font-medium text-sm mb-2 text-muted-foreground">{category}</h4>
                         <div className="grid grid-cols-2 gap-2">
                           {visuals.map((viz) => (
                             <Button
@@ -445,63 +520,106 @@ const DashboardBuilder: React.FC = () => {
                       </div>
                     ))}
                   </div>
-                </ScrollArea>
-              </TabsContent>
+                )}
 
-              <TabsContent value="data" className="flex-1 p-4">
-                <div className="space-y-4">
-                  <Dialog open={showUploadDialog} onOpenChange={setShowUploadDialog}>
-                    <DialogTrigger asChild>
-                      <Button className="w-full" variant="outline">
-                        <Upload className="w-4 h-4 mr-2" />
-                        Upload Data
-                      </Button>
-                    </DialogTrigger>
-                    <DialogContent>
-                      <DialogHeader>
-                        <DialogTitle>Upload Data Source</DialogTitle>
-                      </DialogHeader>
-                      <FileUploadZone
-                        onFilesUploaded={(uploadedFiles) => {
-                          uploadedFiles.forEach(file => {
-                            handleFileUpload([{ name: file.name, size: file.size, type: file.type } as File]);
-                          });
-                        }}
-                        maxFiles={5}
-                      />
-                    </DialogContent>
-                  </Dialog>
-                  
-                  <div className="space-y-2">
-                    <h4 className="font-medium text-sm">Data Sources</h4>
-                    {dataSources.map((source) => (
-                      <div key={source.id} className="p-2 border rounded text-sm">
-                        <div className="font-medium">{source.name}</div>
-                        <div className="text-muted-foreground text-xs">{source.type}</div>
+                {sidebarTab === 'filters' && (
+                  <div className="space-y-4">
+                    <div className="flex items-center justify-between">
+                      <h3 className="font-semibold text-lg">Filters</h3>
+                      <div className="flex gap-1">
+                        {FILTER_TYPES.map((type) => (
+                          <Button
+                            key={type.id}
+                            variant="outline"
+                            size="sm"
+                            onClick={() => addFilter(type.id)}
+                            className="px-2"
+                            title={`Add ${type.name}`}
+                          >
+                            <type.icon className="w-3 h-3" />
+                          </Button>
+                        ))}
                       </div>
-                    ))}
-                  </div>
-                </div>
-              </TabsContent>
-
-              <TabsContent value="format" className="flex-1 p-4">
-                <div className="space-y-4">
-                  <div>
-                    <Label>Dashboard Description</Label>
-                    <Textarea
-                      value={dashboardDescription}
-                      onChange={(e) => setDashboardDescription(e.target.value)}
-                      placeholder="Describe your dashboard..."
-                      className="mt-1"
+                    </div>
+                    <FilterPanel
+                      filters={activeFilters}
+                      onFilterChange={updateFilter}
+                      onFilterRemove={removeFilter}
+                      onClearAll={clearAllFilters}
                     />
                   </div>
-                  <div>
-                    <Label>Background Color</Label>
-                    <Input type="color" className="w-full h-8 mt-1" />
+                )}
+
+                {sidebarTab === 'style' && selectedVisualization && (
+                  <div className="space-y-4">
+                    <h3 className="font-semibold text-lg">Chart Style</h3>
+                    {(() => {
+                      const viz = pages[selectedPage].visualizations.find(v => v.id === selectedVisualization);
+                      return viz ? (
+                        <ChartCustomization
+                          chartType={viz.type}
+                          style={viz.style || getDefaultChartStyle()}
+                          onStyleChange={(updates) => updateVisualizationStyle(selectedVisualization, updates)}
+                        />
+                      ) : (
+                        <div className="text-center py-8 text-muted-foreground">
+                          <Palette className="h-8 w-8 mx-auto mb-2 opacity-50" />
+                          <p>Select a visualization to customize its style</p>
+                        </div>
+                      );
+                    })()}
                   </div>
-                </div>
-              </TabsContent>
-            </Tabs>
+                )}
+
+                {sidebarTab === 'data' && (
+                  <div className="space-y-4">
+                    <div className="flex items-center justify-between">
+                      <h3 className="font-semibold text-lg">Data Sources</h3>
+                      <Button size="sm" variant="outline" onClick={() => setShowUploadDialog(true)}>
+                        <Upload className="w-4 h-4 mr-1" />
+                        Upload
+                      </Button>
+                    </div>
+                    
+                    <div className="space-y-2">
+                      {dataSources.map((source) => (
+                        <Card key={source.id} className="p-3">
+                          <div className="flex items-start justify-between">
+                            <div>
+                              <div className="font-medium text-sm">{source.name}</div>
+                              <div className="text-muted-foreground text-xs">{source.type}</div>
+                            </div>
+                            <Button variant="ghost" size="sm">
+                              <Settings className="w-3 h-3" />
+                            </Button>
+                          </div>
+                        </Card>
+                      ))}
+                      {dataSources.length === 0 && (
+                        <div className="text-center py-8 text-muted-foreground">
+                          <Upload className="h-8 w-8 mx-auto mb-2 opacity-50" />
+                          <p>No data sources yet</p>
+                          <p className="text-xs">Upload files to get started</p>
+                        </div>
+                      )}
+                    </div>
+
+                    <Dialog open={showUploadDialog} onOpenChange={setShowUploadDialog}>
+                      <DialogContent>
+                        <DialogHeader>
+                          <DialogTitle>Upload Data Source</DialogTitle>
+                        </DialogHeader>
+                        <FileUploadZone
+                          onFilesUploaded={handleFileUpload}
+                          accept=".csv,.json,.xlsx"
+                          maxSize={10 * 1024 * 1024}
+                        />
+                      </DialogContent>
+                    </Dialog>
+                  </div>
+                )}
+              </div>
+            </ScrollArea>
           </div>
         )}
 
@@ -516,7 +634,9 @@ const DashboardBuilder: React.FC = () => {
                   variant={selectedPage === index ? 'default' : 'ghost'}
                   size="sm"
                   onClick={() => setSelectedPage(index)}
+                  className="flex items-center gap-2"
                 >
+                  <Layers className="w-3 h-3" />
                   {page.name}
                 </Button>
               ))}
@@ -759,4 +879,4 @@ const DashboardBuilder: React.FC = () => {
   );
 };
 
-export default DashboardBuilder;
+export default EnhancedDashboardBuilder;
