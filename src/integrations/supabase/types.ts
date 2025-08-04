@@ -14,6 +14,126 @@ export type Database = {
   }
   public: {
     Tables: {
+      dashboard_analytics: {
+        Row: {
+          created_at: string
+          dashboard_id: string
+          event_data: Json
+          event_type: string
+          id: string
+          session_id: string | null
+          user_id: string | null
+        }
+        Insert: {
+          created_at?: string
+          dashboard_id: string
+          event_data?: Json
+          event_type: string
+          id?: string
+          session_id?: string | null
+          user_id?: string | null
+        }
+        Update: {
+          created_at?: string
+          dashboard_id?: string
+          event_data?: Json
+          event_type?: string
+          id?: string
+          session_id?: string | null
+          user_id?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "fk_dashboard_analytics_dashboard_id"
+            columns: ["dashboard_id"]
+            isOneToOne: false
+            referencedRelation: "dashboards"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      dashboard_comments: {
+        Row: {
+          content: string
+          created_at: string
+          dashboard_id: string
+          id: string
+          position: Json | null
+          resolved: boolean | null
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          content: string
+          created_at?: string
+          dashboard_id: string
+          id?: string
+          position?: Json | null
+          resolved?: boolean | null
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          content?: string
+          created_at?: string
+          dashboard_id?: string
+          id?: string
+          position?: Json | null
+          resolved?: boolean | null
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "fk_dashboard_comments_dashboard_id"
+            columns: ["dashboard_id"]
+            isOneToOne: false
+            referencedRelation: "dashboards"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      dashboard_filters: {
+        Row: {
+          config: Json
+          created_at: string
+          dashboard_id: string
+          id: string
+          name: string
+          position: number | null
+          type: string
+          updated_at: string
+        }
+        Insert: {
+          config?: Json
+          created_at?: string
+          dashboard_id: string
+          id?: string
+          name: string
+          position?: number | null
+          type: string
+          updated_at?: string
+        }
+        Update: {
+          config?: Json
+          created_at?: string
+          dashboard_id?: string
+          id?: string
+          name?: string
+          position?: number | null
+          type?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "fk_dashboard_filters_dashboard_id"
+            columns: ["dashboard_id"]
+            isOneToOne: false
+            referencedRelation: "dashboards"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       dashboard_pages: {
         Row: {
           created_at: string
@@ -48,6 +168,113 @@ export type Database = {
         Relationships: [
           {
             foreignKeyName: "dashboard_pages_dashboard_id_fkey"
+            columns: ["dashboard_id"]
+            isOneToOne: false
+            referencedRelation: "dashboards"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      dashboard_templates: {
+        Row: {
+          category: string
+          created_at: string
+          created_by: string
+          description: string | null
+          id: string
+          is_featured: boolean | null
+          layout: Json
+          name: string
+          thumbnail_url: string | null
+          updated_at: string
+        }
+        Insert: {
+          category?: string
+          created_at?: string
+          created_by: string
+          description?: string | null
+          id?: string
+          is_featured?: boolean | null
+          layout?: Json
+          name: string
+          thumbnail_url?: string | null
+          updated_at?: string
+        }
+        Update: {
+          category?: string
+          created_at?: string
+          created_by?: string
+          description?: string | null
+          id?: string
+          is_featured?: boolean | null
+          layout?: Json
+          name?: string
+          thumbnail_url?: string | null
+          updated_at?: string
+        }
+        Relationships: []
+      }
+      dashboard_themes: {
+        Row: {
+          colors: Json
+          created_at: string
+          created_by: string
+          fonts: Json
+          id: string
+          name: string
+          spacing: Json
+          updated_at: string
+        }
+        Insert: {
+          colors?: Json
+          created_at?: string
+          created_by: string
+          fonts?: Json
+          id?: string
+          name: string
+          spacing?: Json
+          updated_at?: string
+        }
+        Update: {
+          colors?: Json
+          created_at?: string
+          created_by?: string
+          fonts?: Json
+          id?: string
+          name?: string
+          spacing?: Json
+          updated_at?: string
+        }
+        Relationships: []
+      }
+      dashboard_versions: {
+        Row: {
+          created_at: string
+          created_by: string
+          dashboard_id: string
+          id: string
+          layout: Json
+          version_number: number
+        }
+        Insert: {
+          created_at?: string
+          created_by: string
+          dashboard_id: string
+          id?: string
+          layout?: Json
+          version_number: number
+        }
+        Update: {
+          created_at?: string
+          created_by?: string
+          dashboard_id?: string
+          id?: string
+          layout?: Json
+          version_number?: number
+        }
+        Relationships: [
+          {
+            foreignKeyName: "fk_dashboard_versions_dashboard_id"
             columns: ["dashboard_id"]
             isOneToOne: false
             referencedRelation: "dashboards"
