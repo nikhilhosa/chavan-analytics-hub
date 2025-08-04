@@ -11,6 +11,8 @@ import { Separator } from '@/components/ui/separator';
 import { toast } from '@/hooks/use-toast';
 import { useAuth } from '@/contexts/AuthContext';
 import { useDashboards } from '@/hooks/useDashboards';
+import { useDataSources } from '@/hooks/useDashboards';
+import VisualizationRenderer from '@/components/VisualizationRenderer';
 import { 
   BarChart3, 
   LineChart, 
@@ -380,36 +382,21 @@ const DashboardBuilder: React.FC = () => {
 
               {/* Visualizations */}
               {pages[selectedPage]?.visualizations.map((viz) => (
-                <div
+                <VisualizationRenderer
                   key={viz.id}
-                  className={`absolute border-2 rounded-lg bg-card shadow-sm cursor-pointer ${
-                    selectedVisualization === viz.id 
-                      ? 'border-primary' 
-                      : 'border-border hover:border-border/60'
-                  }`}
+                  id={viz.id}
+                  type={viz.type}
+                  title={viz.title}
+                  config={viz.config}
+                  isSelected={selectedVisualization === viz.id}
+                  onClick={() => setSelectedVisualization(viz.id)}
                   style={{
                     left: viz.x,
                     top: viz.y,
                     width: viz.width,
                     height: viz.height,
                   }}
-                  onClick={() => setSelectedVisualization(viz.id)}
-                >
-                  <div className="p-4 h-full flex items-center justify-center">
-                    <div className="text-center">
-                      {VISUALIZATION_TYPES.find(v => v.id === viz.type)?.icon && (
-                        <div className="flex justify-center mb-2">
-                          {React.createElement(
-                            VISUALIZATION_TYPES.find(v => v.id === viz.type)!.icon,
-                            { className: "w-8 h-8 text-muted-foreground" }
-                          )}
-                        </div>
-                      )}
-                      <div className="text-sm font-medium">{viz.title}</div>
-                      <div className="text-xs text-muted-foreground">{viz.type}</div>
-                    </div>
-                  </div>
-                </div>
+                />
               ))}
 
               {/* Drop Zone Indicator */}
