@@ -13,6 +13,7 @@ import { toast } from '@/hooks/use-toast';
 import { useAuth } from '@/contexts/AuthContext';
 import { useDashboards, useDataSources } from '@/hooks/useDashboards';
 import VisualizationRenderer from '@/components/VisualizationRenderer';
+// Default import - force rebuild
 import FileUploadZone from '@/components/FileUploadZone';
 import { 
   BarChart3, 
