@@ -611,8 +611,6 @@ const EnhancedDashboardBuilder: React.FC = () => {
                         </DialogHeader>
                         <FileUploadZone
                           onFilesUploaded={handleFileUpload}
-                          accept=".csv,.json,.xlsx"
-                          maxSize={10 * 1024 * 1024}
                         />
                       </DialogContent>
                     </Dialog>
